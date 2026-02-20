@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { cac } from 'cac';
-import packageJson from '../package.json';
+import packageJson from '../package.json' with { type: 'json' };
 import read from './read';
 import { formatError } from './shared';
 import write from './write';
