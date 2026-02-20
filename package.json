@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json.schemastore.org/package.json",
+  "name": "review-relay",
+  "version": "0.1.0",
+  "description": "",
+  "license": "MIT",
+  "author": {
+    "name": "Xfive",
+    "email": "hello@xfive.co",
+    "url": "https://www.xfive.co"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "bin": {
+    "review-relay": "dist/index.mjs"
+  },
+  "scripts": {
+    "TODO": "add repository",
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run typecheck && npm run build",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "npm:publish": "npm publish --access public",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@types/mdast": "^4.0.4",
+    "@types/node": "^25.0.3",
+    "@xfive/eslint-config-prettier": "^0.1.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
+    "tsc-files": "^1.1.4",
+    "tsdown": "^0.18.1",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@gitbeaker/rest": "^43.8.0",
+    "cac": "^6.7.14",
+    "mdast-util-from-markdown": "^2.0.2",
+    "mdast-util-to-markdown": "^2.1.2"
+  }
+}
