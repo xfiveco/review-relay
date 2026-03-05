@@ -4,6 +4,10 @@
   "version": "0.1.3",
   "description": "CLI to sync GitLab merge request discussions via feedback.md, designed for AI-assisted code review workflows",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:xfiveco/review-relay.git"
+  },
   "author": {
     "name": "Xfive",
     "email": "hello@xfive.co",
@@ -16,7 +20,6 @@
     "review-relay": "dist/index.mjs"
   },
   "scripts": {
-    "TODO": "add repository",
     "build": "tsdown",
     "dev": "tsdown --watch",
     "typecheck": "tsc --noEmit",

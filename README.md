@@ -9,11 +9,18 @@ Paste the following into an AI coding agent to set up review-relay in your proje
 ```
 Set up review-relay in this project:
 
-1. Detect the package manager from lock files and install review-relay as a dev dependency.
-2. Read node_modules/review-relay/README.md, then interactively walk the user through auth and configuration in the context of this project — ask questions, confirm choices, and explain decisions as you go.
-3. Add review:read and review:write scripts to package.json based on the chosen auth approach.
-4. Add a brief section to the project README or other relevant documentation describing the review:read and review:write scripts and their agentic workflow — omit one-time setup details.
-5. Offer to add /feedback.md to .gitignore — it's a generated per-session file that shouldn't be committed.
+1. Detect the package manager from lock files and install review-relay as a
+   dev dependency.
+2. Read node_modules/review-relay/README.md, then interactively walk the user
+   through auth and configuration in the context of this project — ask
+   questions, confirm choices, and explain decisions as you go.
+3. Add review:read and review:write scripts to package.json based on the
+   chosen auth approach.
+4. Add a brief section to the project README or other relevant documentation
+   describing the review:read and review:write scripts and their agentic
+   workflow — omit one-time setup details.
+5. Offer to add /feedback.md to .gitignore — it's a generated per-session file
+   that shouldn't be committed.
 ```
 
 ## How It Works
