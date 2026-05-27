@@ -23,9 +23,12 @@ const INSTRUCTIONS_TEXT =
   'and project context. If you have doubts, stop and ask for clarification. If you believe feedback is correct, ' +
   'make necessary changes and update the response to "👍". If you believe feedback is incorrect, update the ' +
   'response with your analysis and a detailed technical explanation. Do not use headings in responses.';
+const NO_DISCUSSIONS_TEXT = 'No discussions need attention.';
 
 type ReadOptions = {
   includeCurrentUser?: boolean;
+  output?: string;
+  stdout?: boolean;
 };
 
 async function selectMergeRequest({
@@ -281,6 +284,11 @@ function buildMarkdown({
   lines.push('## Discussions');
   lines.push('');
 
+  if (discussions.length === 0) {
+    lines.push(NO_DISCUSSIONS_TEXT);
+    lines.push('');
+  }
+
   discussions.forEach((discussion) => {
     lines.push(`### Discussion ${discussion.id}`);
     lines.push('');
@@ -316,7 +324,13 @@ function isLastResponseByCurrentUser(
 }
 
 export default async function read(options: ReadOptions = {}): Promise<void> {
-  const outputPath = path.resolve(process.cwd(), OUTPUT_FILE_NAME);
+  const outputTarget = options.output?.trim() || OUTPUT_FILE_NAME;
+  const shouldWriteToStdout = Boolean(options.stdout);
+  if (shouldWriteToStdout && options.output?.trim()) {
+    throw new Error('Use either --stdout or --output <file>, not both');
+  }
+
+  const outputPath = path.resolve(process.cwd(), outputTarget);
   const includeCurrentUserDiscussions = Boolean(options.includeCurrentUser);
   const overrideIid = parseOptionalPositiveIntEnv('REVIEW_RELAY_GITLAB_MERGE_REQUEST_IID');
   const { api, projectPath } = createGitlabClient();
@@ -359,6 +373,11 @@ export default async function read(options: ReadOptions = {}): Promise<void> {
     ...(prettierConfig || {}),
     parser: 'markdown',
   });
+
+  if (shouldWriteToStdout) {
+    process.stdout.write(formattedMarkdown);
+    return;
+  }
 
   await writeFile(outputPath, formattedMarkdown, 'utf8');
 

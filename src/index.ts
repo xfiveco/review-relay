@@ -27,6 +27,8 @@ cli
     '--include-current-user',
     'Include discussions where the latest note is by the current GitLab user',
   )
+  .option('--output <file>', 'Write feedback to a file path (default: feedback.md)')
+  .option('--stdout', 'Print feedback markdown to stdout instead of writing a file')
   .action(withErrorHandling(read));
 
 cli
