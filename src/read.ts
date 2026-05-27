@@ -111,81 +111,150 @@ function toLineNumber(value: unknown): number | null {
 type MergeRequestPosition = NonNullable<MergeRequestDiscussionNoteSchema['position']>;
 type MergeRequestTextPosition = Extract<MergeRequestPosition, { position_type: 'text' }>;
 type MergeRequestLineRangeSide = {
+  type?: 'new' | 'old' | null;
   new_line?: number | null;
   old_line?: number | null;
 };
-
-function readLineFromRangeSide(lineSide?: MergeRequestLineRangeSide | null): number | null {
-  if (!lineSide) {
-    return null;
-  }
-
-  return toLineNumber(lineSide.new_line) ?? toLineNumber(lineSide.old_line);
-}
-
-function readLineRange(position: MergeRequestTextPosition): {
-  start: number | null;
-  end: number | null;
-} {
-  const lineRange = position.line_range;
-  if (!lineRange) {
-    const line = toLineNumber(position.new_line) ?? toLineNumber(position.old_line);
-    return { start: line, end: line };
-  }
-
-  const start =
-    readLineFromRangeSide(lineRange.start) ??
-    toLineNumber(position.new_line) ??
-    toLineNumber(position.old_line);
-  const end =
-    readLineFromRangeSide(lineRange.end) ??
-    toLineNumber(position.new_line) ??
-    toLineNumber(position.old_line);
-
-  return { start, end };
-}
-
-function firstPath(position: MergeRequestPosition): string | null {
-  return position.new_path?.trim() || position.old_path?.trim() || null;
-}
+type PositionSide = 'base/original' | 'head/changed';
+type PositionEndpoint = {
+  side: PositionSide;
+  path: string;
+  line: number | null;
+};
+type NormalizedPosition = {
+  start: PositionEndpoint;
+  end?: PositionEndpoint;
+};
 
 function isTextPosition(position: MergeRequestPosition): position is MergeRequestTextPosition {
   return position.position_type === 'text';
 }
 
-function formatFileLocation(note: MergeRequestDiscussionNoteSchema): string | null {
+function rangeSideType(side: MergeRequestLineRangeSide): PositionSide {
+  return side.type === 'old' || (!side.new_line && side.old_line)
+    ? 'base/original'
+    : 'head/changed';
+}
+
+function pathForSide(position: MergeRequestTextPosition, side: PositionSide): string | null {
+  return side === 'base/original'
+    ? position.old_path?.trim() || position.new_path?.trim() || null
+    : position.new_path?.trim() || position.old_path?.trim() || null;
+}
+
+function endpointFromRangeSide(
+  position: MergeRequestTextPosition,
+  side: MergeRequestLineRangeSide,
+): PositionEndpoint | null {
+  const sideType = rangeSideType(side);
+  const line =
+    sideType === 'base/original'
+      ? toLineNumber(side.old_line)
+      : (toLineNumber(side.new_line) ?? toLineNumber(side.old_line));
+  const pathValue = pathForSide(position, sideType);
+
+  if (!pathValue) {
+    return null;
+  }
+
+  return {
+    side: sideType,
+    path: pathValue,
+    line,
+  };
+}
+
+function normalizePosition(note: MergeRequestDiscussionNoteSchema): NormalizedPosition | null {
   const position = note.position;
   if (!position) {
     return null;
   }
 
-  const pathValue = firstPath(position);
-  if (!pathValue) {
+  const positionType = (position as { position_type?: string }).position_type;
+  if (positionType === 'file') {
+    const filePosition = position as unknown as {
+      new_path?: string | null;
+      old_path?: string | null;
+    };
+    const oldPath = filePosition.old_path?.trim();
+    const newPath = filePosition.new_path?.trim();
+
+    if (oldPath && newPath && oldPath !== newPath) {
+      return {
+        start: { side: 'base/original', path: oldPath, line: null },
+        end: { side: 'head/changed', path: newPath, line: null },
+      };
+    }
+
+    if (newPath) {
+      return { start: { side: 'head/changed', path: newPath, line: null } };
+    }
+
+    return oldPath ? { start: { side: 'base/original', path: oldPath, line: null } } : null;
+  }
+
+  if (!isTextPosition(position)) {
     return null;
   }
 
-  // @ts-expect-error - TODO: fix this
-  if (position.position_type === 'file') {
-    return pathValue;
+  const lineRange = position.line_range;
+  if (lineRange?.start && lineRange.end) {
+    const start = endpointFromRangeSide(position, lineRange.start);
+    const end = endpointFromRangeSide(position, lineRange.end);
+
+    return start ? { start, ...(end ? { end } : {}) } : null;
   }
 
-  if (isTextPosition(position)) {
-    const { start, end } = readLineRange(position);
+  const oldPath = position.old_path?.trim();
+  const newPath = position.new_path?.trim();
+  const oldLine = toLineNumber(position.old_line);
+  const newLine = toLineNumber(position.new_line);
 
-    if (start && end) {
-      if (start === end) {
-        return `${pathValue}#${start}`;
-      }
-
-      return `${pathValue}#${start}-${end}`;
-    }
-
-    if (start) {
-      return `${pathValue}#${start}`;
-    }
+  if (oldLine && newLine && oldPath && newPath) {
+    return {
+      start: { side: 'base/original', path: oldPath, line: oldLine },
+      end: { side: 'head/changed', path: newPath, line: newLine },
+    };
   }
 
-  return pathValue;
+  if (oldLine && oldPath) {
+    return { start: { side: 'base/original', path: oldPath, line: oldLine } };
+  }
+
+  if (newLine && newPath) {
+    return { start: { side: 'head/changed', path: newPath, line: newLine } };
+  }
+
+  return null;
+}
+
+function formatEndpoint(endpoint: PositionEndpoint): string {
+  return endpoint.line
+    ? `${endpoint.side} ${endpoint.path}:${endpoint.line}`
+    : `${endpoint.side} ${endpoint.path}`;
+}
+
+function formatFileLocation(note: MergeRequestDiscussionNoteSchema): string | null {
+  const normalized = normalizePosition(note);
+  if (!normalized) {
+    return null;
+  }
+
+  const { start, end } = normalized;
+  if (!end) {
+    return formatEndpoint(start);
+  }
+
+  if (start.side === end.side && start.path === end.path && start.line && end.line) {
+    const lineSuffix = start.line === end.line ? String(start.line) : `${start.line}-${end.line}`;
+    return `${start.side} ${start.path}:${lineSuffix}`;
+  }
+
+  if (start.path === end.path && start.line && end.line) {
+    return `${start.path} ${start.side} line ${start.line} to ${end.side} line ${end.line}`;
+  }
+
+  return `${formatEndpoint(start)} to ${formatEndpoint(end)}`;
 }
 
 function buildMarkdown({
