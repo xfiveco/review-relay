@@ -18,17 +18,26 @@ import {
 
 const OUTPUT_FILE_NAME = 'feedback.md';
 const OPEN_MR_STATE = 'opened';
-const INSTRUCTIONS_TEXT =
-  'Read the following discussions carefully. For each discussion that has a "TODO" response, analyze the file ' +
-  'and project context. If you have doubts, stop and ask for clarification. If you believe feedback is correct, ' +
-  'make necessary changes and update the response to "👍". If you believe feedback is incorrect, update the ' +
-  'response with your analysis and a detailed technical explanation. Do not use headings in responses.';
+const READING_INSTRUCTIONS_TEXT =
+  'Read the following discussions carefully. For each discussion, analyze the referenced file and project ' +
+  'context. If you have doubts, stop and ask for clarification. If you believe feedback is correct, make ' +
+  'necessary changes. If you believe feedback is incorrect, prepare a detailed technical explanation.';
+const DOCUMENT_RESPONSE_INSTRUCTIONS_TEXT =
+  'Write each response under the matching "#### Response" heading. Replace "TODO" with "👍" when feedback ' +
+  'was accepted and applied, or with your detailed technical explanation when you disagree. Do not use headings ' +
+  'in responses.';
+const GLAB_RESPONSE_INSTRUCTIONS_TEXT =
+  'Use glab CLI to add responses to discussions. For each discussion, reply with ' +
+  '`glab mr note create <merge-request-id> --reply <discussion-id> -m "<response>"`. Use "👍" as the ' +
+  'response when feedback was accepted and applied. When you disagree, use your detailed technical explanation ' +
+  'as the response.';
 const NO_DISCUSSIONS_TEXT = 'No discussions need attention.';
 
 type ReadOptions = {
   includeCurrentUser?: boolean;
   output?: string;
   stdout?: boolean;
+  glab?: boolean;
 };
 
 async function selectMergeRequest({
@@ -268,10 +277,12 @@ function buildMarkdown({
   mergeRequest,
   currentUserId,
   discussions,
+  useGlab,
 }: {
   mergeRequest: MergeRequestSchemaWithBasicLabels | ExpandedMergeRequestSchema;
   currentUserId: number;
   discussions: Array<{ id: string; notes: MergeRequestDiscussionNoteSchema[] }>;
+  useGlab: boolean;
 }): string {
   const lines: string[] = [];
 
@@ -279,7 +290,13 @@ function buildMarkdown({
   lines.push('');
   lines.push('## Instructions');
   lines.push('');
-  lines.push(INSTRUCTIONS_TEXT);
+  lines.push('### Reading and processing');
+  lines.push('');
+  lines.push(READING_INSTRUCTIONS_TEXT);
+  lines.push('');
+  lines.push('### Writing responses');
+  lines.push('');
+  lines.push(useGlab ? GLAB_RESPONSE_INSTRUCTIONS_TEXT : DOCUMENT_RESPONSE_INSTRUCTIONS_TEXT);
   lines.push('');
   lines.push('## Discussions');
   lines.push('');
@@ -308,9 +325,11 @@ function buildMarkdown({
       lines.push('');
     });
 
-    lines.push('#### Response');
-    lines.push('TODO');
-    lines.push('');
+    if (!useGlab) {
+      lines.push('#### Response');
+      lines.push('TODO');
+      lines.push('');
+    }
   });
 
   return `${lines.join('\n').trimEnd()}\n`;
@@ -332,6 +351,7 @@ export default async function read(options: ReadOptions = {}): Promise<void> {
 
   const outputPath = path.resolve(process.cwd(), outputTarget);
   const includeCurrentUserDiscussions = Boolean(options.includeCurrentUser);
+  const useGlab = Boolean(options.glab);
   const overrideIid = parseOptionalPositiveIntEnv('REVIEW_RELAY_GITLAB_MERGE_REQUEST_IID');
   const { api, projectPath } = createGitlabClient();
   const currentUser = await api.Users.showCurrentUser();
@@ -366,6 +386,7 @@ export default async function read(options: ReadOptions = {}): Promise<void> {
     mergeRequest,
     currentUserId: currentUser.id,
     discussions,
+    useGlab,
   });
 
   const prettierConfig = await prettier.resolveConfig(outputPath);

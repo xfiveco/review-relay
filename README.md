@@ -105,6 +105,7 @@ A **project access token** is recommended over a personal access token — it sc
 | `--include-current-user` | Include discussions where the latest note is by the current GitLab user. |
 | `--output <file>`        | Write feedback to a file path. Defaults to `feedback.md`.                |
 | `--stdout`               | Print feedback markdown to stdout instead of writing a file.             |
+| `--glab`                 | Add glab response instructions and omit TODO response blocks.            |
 
 #### Auto-detection
 
@@ -127,8 +128,8 @@ The `read` command only includes discussions that need attention:
 ## Commands
 
 ```
-review-relay read [--include-current-user] [--output <file>] [--stdout]  Fetch unresolved merge request discussions
-review-relay write                                                        Submit responses from feedback.md
-review-relay --help                                                       Show help
-review-relay --version                                                    Show version
+review-relay read [options]  Fetch unresolved merge request discussions
+review-relay write          Submit responses from feedback.md
+review-relay --help         Show help
+review-relay --version      Show version
 ```

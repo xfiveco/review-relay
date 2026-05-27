@@ -29,6 +29,7 @@ cli
   )
   .option('--output <file>', 'Write feedback to a file path (default: feedback.md)')
   .option('--stdout', 'Print feedback markdown to stdout instead of writing a file')
+  .option('--glab', 'Use glab instructions and omit TODO response blocks')
   .action(withErrorHandling(read));
 
 cli
