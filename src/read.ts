@@ -24,6 +24,10 @@ const INSTRUCTIONS_TEXT =
   'make necessary changes and update the response to "👍". If you believe feedback is incorrect, update the ' +
   'response with your analysis and a detailed technical explanation. Do not use headings in responses.';
 
+type ReadOptions = {
+  includeCurrentUser?: boolean;
+};
+
 async function selectMergeRequest({
   api,
   projectPath,
@@ -311,8 +315,9 @@ function isLastResponseByCurrentUser(
   return notes.at(-1)?.author.id === currentUserId;
 }
 
-export default async function read(): Promise<void> {
+export default async function read(options: ReadOptions = {}): Promise<void> {
   const outputPath = path.resolve(process.cwd(), OUTPUT_FILE_NAME);
+  const includeCurrentUserDiscussions = Boolean(options.includeCurrentUser);
   const overrideIid = parseOptionalPositiveIntEnv('REVIEW_RELAY_GITLAB_MERGE_REQUEST_IID');
   const { api, projectPath } = createGitlabClient();
   const currentUser = await api.Users.showCurrentUser();
@@ -339,7 +344,8 @@ export default async function read(): Promise<void> {
     .filter(
       (discussion) =>
         discussion.notes.length > 0 &&
-        !isLastResponseByCurrentUser(discussion.notes, currentUser.id),
+        (includeCurrentUserDiscussions ||
+          !isLastResponseByCurrentUser(discussion.notes, currentUser.id)),
     );
 
   const markdown = buildMarkdown({

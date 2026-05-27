@@ -8,10 +8,12 @@ import write from './write';
 
 const cli = cac('review-relay');
 
-function withErrorHandling(action: () => Promise<void>): () => Promise<void> {
-  return async () => {
+function withErrorHandling<T extends unknown[]>(
+  action: (...args: T) => Promise<void>,
+): (...args: T) => Promise<void> {
+  return async (...args: T) => {
     try {
-      await action();
+      await action(...args);
     } catch (error) {
       console.error(formatError(error));
       process.exitCode = 1;
@@ -21,6 +23,10 @@ function withErrorHandling(action: () => Promise<void>): () => Promise<void> {
 
 cli
   .command('read', 'Fetch unresolved merge request discussions into feedback.md')
+  .option(
+    '--include-current-user',
+    'Include discussions where the latest note is by the current GitLab user',
+  )
   .action(withErrorHandling(read));
 
 cli
