@@ -29,7 +29,7 @@ cli
   )
   .option('--output <file>', 'Write feedback to a file path (default: feedback.md)')
   .option('--stdout', 'Print feedback markdown to stdout instead of writing a file')
-  .option('--cli', 'Use CLI response instructions and omit TODO response blocks')
+  .option('--agent', 'Print feedback as an agent prompt; replies should be MR notes')
   .action(withErrorHandling(read));
 
 cli

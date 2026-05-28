@@ -105,7 +105,7 @@ A **project access token** is recommended over a personal access token — it sc
 | `--include-current-user` | Include discussions where the latest note is by the current GitLab user. |
 | `--output <file>`        | Write feedback to a file path. Defaults to `feedback.md`.                |
 | `--stdout`               | Print feedback markdown to stdout instead of writing a file.             |
-| `--cli`                  | Add CLI response instructions and omit TODO response blocks.             |
+| `--agent`                | Print feedback as an agent prompt; replies should be MR notes.           |
 
 #### Auto-detection
 

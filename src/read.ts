@@ -26,18 +26,20 @@ const DOCUMENT_RESPONSE_INSTRUCTIONS_TEXT =
   'Write each response under the matching "#### Response" heading. Replace "TODO" with "👍" when feedback ' +
   'was accepted and applied, or with your detailed technical explanation when you disagree. Do not use headings ' +
   'in responses.';
-const CLI_RESPONSE_INSTRUCTIONS_TEXT =
-  'Use glab CLI to add responses to discussions. For each discussion, reply with ' +
-  '`glab mr note create <merge-request-id> --reply <discussion-id> -m "<response>"`. Use "👍" as the ' +
-  'response when feedback was accepted and applied. When you disagree, use your detailed technical explanation ' +
-  'as the response.';
+const AGENT_RESPONSE_INSTRUCTIONS_TEXT =
+  'Respond by writing merge request notes with the CLI. Reply to each existing discussion with ' +
+  '`glab mr note create <merge-request-id> --reply <discussion-id> -m "<response>"`. Write "👍" as response when feedback ' +
+  'was accepted and applied, or write your detailed technical explanation when you disagree. Your final chat ' +
+  'response will be ignored; only merge request notes matter. Add a new merge request note only when there is no ' +
+  'existing discussion to reply to and the note is necessary: ' +
+  '`glab mr note create <merge-request-id> -m "<response>"`.';
 const NO_DISCUSSIONS_TEXT = 'No discussions need attention.';
 
 type ReadOptions = {
   includeCurrentUser?: boolean;
   output?: string;
   stdout?: boolean;
-  cli?: boolean;
+  agent?: boolean;
 };
 
 async function selectMergeRequest({
@@ -277,12 +279,12 @@ function buildMarkdown({
   mergeRequest,
   currentUserId,
   discussions,
-  useCli,
+  useAgent,
 }: {
   mergeRequest: MergeRequestSchemaWithBasicLabels | ExpandedMergeRequestSchema;
   currentUserId: number;
   discussions: Array<{ id: string; notes: MergeRequestDiscussionNoteSchema[] }>;
-  useCli: boolean;
+  useAgent: boolean;
 }): string {
   const lines: string[] = [];
 
@@ -296,7 +298,7 @@ function buildMarkdown({
   lines.push('');
   lines.push('### Writing responses');
   lines.push('');
-  lines.push(useCli ? CLI_RESPONSE_INSTRUCTIONS_TEXT : DOCUMENT_RESPONSE_INSTRUCTIONS_TEXT);
+  lines.push(useAgent ? AGENT_RESPONSE_INSTRUCTIONS_TEXT : DOCUMENT_RESPONSE_INSTRUCTIONS_TEXT);
   lines.push('');
   lines.push('## Discussions');
   lines.push('');
@@ -325,7 +327,7 @@ function buildMarkdown({
       lines.push('');
     });
 
-    if (!useCli) {
+    if (!useAgent) {
       lines.push('#### Response');
       lines.push('TODO');
       lines.push('');
@@ -344,14 +346,14 @@ function isLastResponseByCurrentUser(
 
 export default async function read(options: ReadOptions = {}): Promise<void> {
   const outputTarget = options.output?.trim() || OUTPUT_FILE_NAME;
-  const shouldWriteToStdout = Boolean(options.stdout);
+  const shouldWriteToStdout = Boolean(options.stdout || options.agent);
   if (shouldWriteToStdout && options.output?.trim()) {
-    throw new Error('Use either --stdout or --output <file>, not both');
+    throw new Error('Use either stdout mode (--stdout/--agent) or --output <file>, not both');
   }
 
   const outputPath = path.resolve(process.cwd(), outputTarget);
   const includeCurrentUserDiscussions = Boolean(options.includeCurrentUser);
-  const useCli = Boolean(options.cli);
+  const useAgent = Boolean(options.agent);
   const overrideIid = parseOptionalPositiveIntEnv('REVIEW_RELAY_GITLAB_MERGE_REQUEST_IID');
   const { api, projectPath } = createGitlabClient();
   const currentUser = await api.Users.showCurrentUser();
@@ -386,7 +388,7 @@ export default async function read(options: ReadOptions = {}): Promise<void> {
     mergeRequest,
     currentUserId: currentUser.id,
     discussions,
-    useCli,
+    useAgent,
   });
 
   const prettierConfig = await prettier.resolveConfig(outputPath);
