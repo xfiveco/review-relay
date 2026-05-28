@@ -80,6 +80,15 @@ export function requireEnv(name: string): string {
   return value.trim();
 }
 
+function requireEnvWithFallback(primaryName: string, fallbackName: string): string {
+  const value = process.env[primaryName]?.trim() || process.env[fallbackName]?.trim();
+  if (!value) {
+    throw new Error(`Missing ${primaryName} environment variable (or ${fallbackName} fallback)`);
+  }
+
+  return value;
+}
+
 export function parseOptionalPositiveIntEnv(name: string): number | null {
   const value = process.env[name]?.trim();
   if (!value) {
@@ -95,7 +104,7 @@ export function parseOptionalPositiveIntEnv(name: string): number | null {
 }
 
 export function createGitlabClient(): { api: Gitlab; projectPath: string } {
-  const token = requireEnv('REVIEW_RELAY_GITLAB_PRIVATE_TOKEN');
+  const token = requireEnvWithFallback('REVIEW_RELAY_GITLAB_PRIVATE_TOKEN', 'GITLAB_TOKEN');
   const inferred = parseProjectFromRemote(getOriginUrl());
 
   const rawHost = (process.env.REVIEW_RELAY_GITLAB_HOST || inferred.host)

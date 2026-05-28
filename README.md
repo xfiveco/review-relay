@@ -62,6 +62,8 @@ Review Relay is configured via environment variables. You can export them in you
 ```bash
 # .env
 REVIEW_RELAY_GITLAB_PRIVATE_TOKEN=your-token-here
+# or
+GITLAB_TOKEN=your-token-here
 ```
 
 ```bash
@@ -84,9 +86,9 @@ Or add convenience scripts to `package.json`:
 
 #### Required
 
-| Variable                            | Description                          |
-| ----------------------------------- | ------------------------------------ |
-| `REVIEW_RELAY_GITLAB_PRIVATE_TOKEN` | GitLab access token with `api` scope |
+| Variable                                              | Description                                                                         |
+| ----------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `REVIEW_RELAY_GITLAB_PRIVATE_TOKEN` or `GITLAB_TOKEN` | GitLab access token with `api` scope. The relay-specific variable takes precedence. |
 
 A **project access token** is recommended over a personal access token — it scopes permissions to a single project. Create one under **Settings → Access Tokens** in your GitLab project. The token needs at least the **Reporter** role to read discussions and post notes.
 
